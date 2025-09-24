@@ -1,5 +1,10 @@
 #include <Joystick.h>
 
+const int deadzone = 5;
+const int minAxisRange = 0;
+const int maxAxisRange = 1023;
+const int axisCentre = maxAxisRange / 2;
+
 const int keyCount = 14;
 
 const int xAxis = A3;
@@ -23,7 +28,7 @@ const int key14 = 15;
 const int keyShift = 18;
 
 const int joystickButtonPin   = 19;
-const int joystickButtonValue = keyCount * 2 + 1;
+const int joystickButtonValue = keyCount * 2;
 
 const int buttonKeys[keyCount] = {
   key01, key02, key03, key04, key05,
@@ -49,27 +54,59 @@ void setup() {
   pinMode(keyShift, INPUT_PULLUP);
   pinMode(joystickButtonPin, INPUT_PULLUP);
 
-  controller.setXAxisRange(1023, 0);
-  controller.setYAxisRange(0, 1023);
+  controller.setXAxisRange(minAxisRange, maxAxisRange);
+  controller.setYAxisRange(maxAxisRange, minAxisRange);
 
   controller.begin();
 }
 
 void loop() {
   for (int i = 0; i < keyCount; i++) {
+    int button = getButton(i);
+
     if (digitalRead(i) == LOW) {
-      controller.pressButton(getButton(i));
+      controller.pressButton(button);
+    } else {
+      controller.releaseButton(button);
     }
   }
 
   if (digitalRead(joystickButtonPin) == LOW) {
     controller.pressButton(joystickButtonValue);
+  } else {
+    controller.releaseButton(joystickButtonValue);
   }
 
-  controller.setXAxis(analogRead(xAxis));
-  controller.setYAxis(analogRead(yAxis));
+  setXAxis();
+  setYAxis();
 
-  delay(20);
+  delay(10);
+}
+
+void setXAxis() {
+  int value = analogRead(xAxis);
+
+  if (isDeadzone(value)) {
+    controller.setXAxis(axisCentre);
+    return;
+  }
+
+  controller.setXAxis(value);
+}
+
+void setYAxis() {
+  int value = analogRead(yAxis);
+
+  if (isDeadzone(value)) {
+    controller.setYAxis(axisCentre);
+    return;
+  }
+
+  controller.setYAxis(value);
+}
+
+bool isDeadzone(int axisValue) {
+  return (axisValue > axisCentre - deadzone && axisValue < axisCentre + 10);
 }
 
 int getButton(int key) {
