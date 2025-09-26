@@ -1,6 +1,6 @@
 #include <Joystick.h>
 
-const int deadzone = 5;
+const int deadzone = 1;
 const int minAxisRange = 0;
 const int maxAxisRange = 1023;
 const int axisCentre = maxAxisRange / 2;
@@ -31,9 +31,8 @@ const int joystickButtonPin   = 19;
 const int joystickButtonValue = keyCount * 2;
 
 const int buttonKeys[keyCount] = {
-  key01, key02, key03, key04, key05,
-  key06, key07, key08, key09, key10,
-  key11, key12, key13, key14
+  key01, key02, key03, key04, key05, key06, key07,
+  key08, key09, key10, key11, key12, key13, key14
 };
 
 Joystick_ controller(
@@ -62,12 +61,11 @@ void setup() {
 
 void loop() {
   for (int i = 0; i < keyCount; i++) {
-    int button = getButton(i);
-
-    if (digitalRead(i) == LOW) {
-      controller.pressButton(button);
+    if (digitalRead(buttonKeys[i]) == LOW) {
+      pressButton(i);
     } else {
-      controller.releaseButton(button);
+      controller.releaseButton(i);
+      controller.releaseButton(i + keyCount);
     }
   }
 
@@ -109,10 +107,24 @@ bool isDeadzone(int axisValue) {
   return (axisValue > axisCentre - deadzone && axisValue < axisCentre + 10);
 }
 
-int getButton(int key) {
-  if (digitalRead(keyShift) == LOW) {
-    return key + keyCount;
+int pressButton(int keyIndex) {
+  int button = getButton(keyIndex);
+
+  // Using shift while a button is pressed could result in both the base and
+  // shifted buttons being pressed at the same time. This avoids that.
+  if (button >= keyCount) {
+    controller.releaseButton(keyIndex);
+  } else {
+    controller.releaseButton(keyIndex + keyCount);
   }
 
-  return key;
+  controller.pressButton(button);
+}
+
+int getButton(int keyIndex) {
+  if (digitalRead(keyShift) == LOW) {
+    return keyIndex + keyCount;
+  }
+
+  return keyIndex;
 }
